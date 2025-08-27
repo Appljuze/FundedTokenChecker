@@ -50,68 +50,91 @@ const TokenBalanceChecker = () => {
       const walletResults = []
       let totalBalance = 0
 
-      // Check balance for each wallet
-      for (let i = 0; i < validWallets.length; i++) {
-        const walletAddress = validWallets[i]
-        console.log(`\n🔍 Processing wallet ${i + 1}/${validWallets.length}:`, walletAddress)
+      // Process wallets in batches for concurrent processing
+      const batchSize = 3 // Process 3 wallets at a time
+      const batches = []
+      
+      for (let i = 0; i < validWallets.length; i += batchSize) {
+        batches.push(validWallets.slice(i, i + batchSize))
+      }
+      
+      console.log(`🔄 Processing ${batches.length} batches of ${batchSize} wallets each`)
+
+      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+        const batch = batches[batchIndex]
+        console.log(`\n📦 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} wallets`)
         
-        try {
-          console.log(`  ⏳ Fetching balance for wallet: ${walletAddress}`)
+        // Process wallets in current batch concurrently
+        const batchPromises = batch.map(async (walletAddress, batchWalletIndex) => {
+          const globalWalletIndex = batchIndex * batchSize + batchWalletIndex
+          console.log(`🔍 Processing wallet ${globalWalletIndex + 1}/${validWallets.length}: ${walletAddress}`)
           
-          const balance = await getTokenBalanceAtBlock(
-            TOKEN_ADDRESS,
-            walletAddress.trim(),
-            BLOCK_NUMBER
-          )
-          
-          console.log(`  ✅ Raw balance response:`, balance)
-          
-          // Ensure balance is properly parsed and handle zero values
-          const parsedBalance = parseFloat(balance.balance) || 0
-          console.log(`  🔢 Parsed balance: ${parsedBalance} (original: ${balance.balance})`)
-          
-          const result = {
-            ...balance,
-            balance: parsedBalance.toString()
+          try {
+            console.log(`  ⏳ Fetching balance for wallet: ${walletAddress}`)
+            
+            const balance = await getTokenBalanceAtBlock(
+              TOKEN_ADDRESS,
+              walletAddress.trim(),
+              BLOCK_NUMBER
+            )
+            
+            console.log(`  ✅ Raw balance response:`, balance)
+            
+            // Ensure balance is properly parsed and handle zero values
+            const parsedBalance = parseFloat(balance.balance) || 0
+            console.log(`  🔢 Parsed balance: ${parsedBalance} (original: ${balance.balance})`)
+            
+            const result = {
+              ...balance,
+              balance: parsedBalance.toString()
+            }
+            
+            console.log(`  📝 Final result object:`, result)
+            console.log(`  💰 Wallet ${globalWalletIndex + 1} balance: ${parsedBalance} $FUNDED`)
+            
+            return { result, parsedBalance, success: true }
+            
+          } catch (err) {
+            console.error(`  ❌ Error checking wallet ${walletAddress}:`, err)
+            console.error(`  🔍 Error details:`, {
+              message: err.message,
+              stack: err.stack,
+              wallet: walletAddress,
+              index: globalWalletIndex
+            })
+            
+            const errorResult = {
+              tokenAddress: TOKEN_ADDRESS,
+              walletAddress: walletAddress.trim(),
+              blockNumber: BLOCK_NUMBER,
+              balance: '0',
+              symbol: 'FUNDED',
+              decimals: 18,
+              rawBalance: '0',
+              error: err.message
+            }
+            
+            console.log(`  🚫 Adding error result:`, errorResult)
+            return { result: errorResult, parsedBalance: 0, success: false }
           }
-          
-          console.log(`  📝 Final result object:`, result)
-          
+        })
+        
+        // Wait for all wallets in current batch to complete
+        const batchResults = await Promise.all(batchPromises)
+        
+        // Process batch results
+        for (const { result, parsedBalance, success } of batchResults) {
           walletResults.push(result)
-          totalBalance += parsedBalance
-          
-          console.log(`  💰 Wallet ${i + 1} balance: ${parsedBalance} $FUNDED`)
-          console.log(`  📈 Running total: ${totalBalance} $FUNDED`)
-          
-        } catch (err) {
-          console.error(`  ❌ Error checking wallet ${walletAddress}:`, err)
-          console.error(`  🔍 Error details:`, {
-            message: err.message,
-            stack: err.stack,
-            wallet: walletAddress,
-            index: i
-          })
-          
-          const errorResult = {
-            tokenAddress: TOKEN_ADDRESS,
-            walletAddress: walletAddress.trim(),
-            blockNumber: BLOCK_NUMBER,
-            balance: '0',
-            symbol: 'FUNDED',
-            decimals: 18,
-            rawBalance: '0',
-            error: err.message
+          if (success) {
+            totalBalance += parsedBalance
+            console.log(`  📈 Running total: ${totalBalance} $FUNDED`)
           }
-          
-          console.log(`  🚫 Adding error result:`, errorResult)
-          walletResults.push(errorResult)
-          // Don't add to total if there's an error
         }
         
-        // Add a small delay between requests to avoid rate limiting
-        if (i < validWallets.length - 1) {
-          console.log(`  ⏸️  Waiting 1500ms before next wallet...`)
-          await new Promise(resolve => setTimeout(resolve, 1500))
+        // Add delay between batches (not between individual wallets in a batch)
+        if (batchIndex < batches.length - 1) {
+          console.log(`  ⏸️  Waiting 2000ms before next batch...`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
 
