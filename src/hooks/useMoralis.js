@@ -30,13 +30,13 @@ export const useMoralis = () => {
             address: walletAddress,
             tokenAddresses: [tokenAddress],
             chain: '0x2105',
-            block: blockNumber.toString()
+            toBlock: blockNumber.toString()
           })
         } else if (tokenMethods.includes('getWalletTokenBalances')) {
           balanceResponse = await window.Moralis.EvmApi.token.getWalletTokenBalances({
             address: walletAddress,
             chain: '0x2105',
-            block: blockNumber.toString()
+            toBlock: blockNumber.toString()
           })
           // Filter for our specific token
           const ourToken = balanceResponse.result.find(t => t.tokenAddress.toLowerCase() === tokenAddress.toLowerCase())
