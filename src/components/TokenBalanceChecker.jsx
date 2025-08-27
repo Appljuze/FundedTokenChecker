@@ -39,6 +39,9 @@ const TokenBalanceChecker = () => {
     const validWallets = wallets.filter(wallet => wallet.trim())
     if (validWallets.length === 0) return
     
+    console.log('🚀 Starting balance check for wallets:', validWallets)
+    console.log('📊 Total wallets to check:', validWallets.length)
+    
     setIsLoading(true)
     setError(null)
     setResults(null)
@@ -48,26 +51,48 @@ const TokenBalanceChecker = () => {
       let totalBalance = 0
 
       // Check balance for each wallet
-      for (const walletAddress of validWallets) {
+      for (let i = 0; i < validWallets.length; i++) {
+        const walletAddress = validWallets[i]
+        console.log(`\n🔍 Processing wallet ${i + 1}/${validWallets.length}:`, walletAddress)
+        
         try {
+          console.log(`  ⏳ Fetching balance for wallet: ${walletAddress}`)
+          
           const balance = await getTokenBalanceAtBlock(
             TOKEN_ADDRESS,
             walletAddress.trim(),
             BLOCK_NUMBER
           )
           
+          console.log(`  ✅ Raw balance response:`, balance)
+          
           // Ensure balance is properly parsed and handle zero values
           const parsedBalance = parseFloat(balance.balance) || 0
+          console.log(`  🔢 Parsed balance: ${parsedBalance} (original: ${balance.balance})`)
           
-          walletResults.push({
+          const result = {
             ...balance,
             balance: parsedBalance.toString()
+          }
+          
+          console.log(`  📝 Final result object:`, result)
+          
+          walletResults.push(result)
+          totalBalance += parsedBalance
+          
+          console.log(`  💰 Wallet ${i + 1} balance: ${parsedBalance} $FUNDED`)
+          console.log(`  📈 Running total: ${totalBalance} $FUNDED`)
+          
+        } catch (err) {
+          console.error(`  ❌ Error checking wallet ${walletAddress}:`, err)
+          console.error(`  🔍 Error details:`, {
+            message: err.message,
+            stack: err.stack,
+            wallet: walletAddress,
+            index: i
           })
           
-          totalBalance += parsedBalance
-        } catch (err) {
-          console.error(`Error checking wallet ${walletAddress}:`, err)
-          walletResults.push({
+          const errorResult = {
             tokenAddress: TOKEN_ADDRESS,
             walletAddress: walletAddress.trim(),
             blockNumber: BLOCK_NUMBER,
@@ -76,20 +101,43 @@ const TokenBalanceChecker = () => {
             decimals: 18,
             rawBalance: '0',
             error: err.message
-          })
+          }
+          
+          console.log(`  🚫 Adding error result:`, errorResult)
+          walletResults.push(errorResult)
           // Don't add to total if there's an error
         }
+        
+        // Add a small delay between requests to avoid rate limiting
+        if (i < validWallets.length - 1) {
+          console.log(`  ⏸️  Waiting 100ms before next wallet...`)
+          await new Promise(resolve => setTimeout(resolve, 100))
+        }
       }
+
+      console.log(`\n🎯 Final results summary:`)
+      console.log(`  📊 Total wallets processed: ${walletResults.length}`)
+      console.log(`  💰 Total balance: ${totalBalance} $FUNDED`)
+      console.log(`  📋 All results:`, walletResults)
 
       setResults({
         wallets: walletResults,
         totalBalance: totalBalance.toString(),
         totalWallets: validWallets.length
       })
+      
+      console.log(`✅ Results set successfully`)
+      
     } catch (err) {
+      console.error(`💥 Fatal error in handleSubmit:`, err)
+      console.error(`🔍 Error details:`, {
+        message: err.message,
+        stack: err.stack
+      })
       setError(err.message || 'Failed to fetch token balances')
     } finally {
       setIsLoading(false)
+      console.log(`🏁 Loading state set to false`)
     }
   }
 

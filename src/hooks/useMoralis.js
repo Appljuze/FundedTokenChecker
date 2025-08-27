@@ -16,24 +16,32 @@ export const useMoralis = () => {
   }
 
   const getTokenBalanceAtBlock = useCallback(async (tokenAddress, walletAddress, blockNumber) => {
+    console.log(`🔧 useMoralis: Starting balance check for wallet ${walletAddress}`)
+    console.log(`🔧 useMoralis: Token: ${tokenAddress}, Block: ${blockNumber}`)
+    
     setIsLoading(true)
     
     try {
       // Check if Moralis is available
       if (window.Moralis && window.Moralis.EvmApi) {
-        console.log('Using Moralis API...')
+        console.log(`🔧 useMoralis: Using Moralis API...`)
         
         // Get token metadata using Moralis
+        console.log(`🔧 useMoralis: Fetching token metadata...`)
         const tokenMetadata = await window.Moralis.EvmApi.token.getTokenMetadata({
           addresses: [tokenAddress],
           chain: '0x2105' // Base mainnet chain ID
         })
 
+        console.log(`🔧 useMoralis: Token metadata response:`, tokenMetadata)
         const token = tokenMetadata.result[0]
         const symbol = token.symbol || 'TOKEN'
         const decimals = token.decimals || 18
+        
+        console.log(`🔧 useMoralis: Token symbol: ${symbol}, decimals: ${decimals}`)
 
         // Get token balance at specific block using Moralis
+        console.log(`🔧 useMoralis: Fetching token balance...`)
         const balanceResponse = await window.Moralis.EvmApi.token.getTokenBalance({
           address: walletAddress,
           tokenAddress: tokenAddress,
@@ -41,10 +49,13 @@ export const useMoralis = () => {
           block: blockNumber.toString()
         })
 
+        console.log(`🔧 useMoralis: Balance response:`, balanceResponse)
         const rawBalance = balanceResponse.result.balance
         const balance = (parseInt(rawBalance) / Math.pow(10, decimals)).toFixed(decimals)
+        
+        console.log(`🔧 useMoralis: Raw balance: ${rawBalance}, calculated balance: ${balance}`)
 
-        return {
+        const result = {
           tokenAddress,
           walletAddress,
           blockNumber: parseInt(blockNumber),
@@ -53,23 +64,33 @@ export const useMoralis = () => {
           decimals,
           rawBalance
         }
+        
+        console.log(`🔧 useMoralis: Returning result:`, result)
+        return result
+        
       } else {
-        console.log('Moralis not available, using fallback RPC...')
+        console.log(`🔧 useMoralis: Moralis not available, using fallback RPC...`)
         return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
       }
     } catch (error) {
-      console.error('Error fetching token balance:', error)
+      console.error(`🔧 useMoralis: Error fetching token balance:`, error)
+      console.error(`🔧 useMoralis: Error details:`, {
+        message: error.message,
+        stack: error.stack,
+        wallet: walletAddress
+      })
       
       // Fallback to direct RPC if Moralis fails
       try {
-        console.log('Falling back to direct RPC call...')
+        console.log(`🔧 useMoralis: Falling back to direct RPC call...`)
         return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
       } catch (fallbackError) {
-        console.error('Fallback also failed:', fallbackError)
+        console.error(`🔧 useMoralis: Fallback also failed:`, fallbackError)
         throw new Error(`Failed to fetch token balance: ${error.message}`)
       }
     } finally {
       setIsLoading(false)
+      console.log(`🔧 useMoralis: Loading state set to false`)
     }
   }, [])
 
