@@ -274,14 +274,6 @@ const TokenBalanceChecker = () => {
             )}
             
             {/* Estimated Time */}
-            <div className="text-center text-sm text-gray-600">
-              <p>
-                Processing wallets with Moralis API
-              </p>
-              <p className="text-xs text-gray-500 mt-1">
-                (No delays needed - Moralis handles rate limiting automatically)
-              </p>
-            </div>
           </div>
         </div>
       )}
