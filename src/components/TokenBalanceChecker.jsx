@@ -308,7 +308,7 @@ const TokenBalanceChecker = () => {
               <div className="flex items-center mb-4">
                 <CheckCircle className="h-5 w-5 text-green-500 mr-3" />
                 <h3 className="text-lg font-medium text-green-800">
-                  Wallet {index + 1} - {result.error ? 'Error' : '$FUNDED Holdings Retrieved'}
+                  Wallet {index + 1}
                 </h3>
               </div>
               
