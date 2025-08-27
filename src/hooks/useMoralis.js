@@ -38,7 +38,13 @@ export const useMoralis = () => {
           rawBalance
         }
       } else {
-        throw new Error('Moralis SDK not available. Please ensure Moralis is properly initialized.')
+        // Check what's available for debugging
+        console.error('Moralis availability check failed:')
+        console.error('- window.Moralis exists:', !!window.Moralis)
+        console.error('- window.Moralis.EvmApi exists:', !!(window.Moralis && window.Moralis.EvmApi))
+        console.error('- window.Moralis object:', window.Moralis)
+        
+        throw new Error('Moralis SDK not available. Please ensure Moralis is properly initialized and refresh the page.')
       }
     } catch (error) {
       console.error('Error fetching token balance with Moralis:', error)
