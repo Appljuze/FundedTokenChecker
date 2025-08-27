@@ -1,13 +1,14 @@
 {
-  "name": "funded-token-checker",
+  "name": "vibe-airdrop-calculator",
   "version": "1.0.0",
-  "description": "A web app for checking token balances on Base blockchain at specific blocks",
+  "description": "Calculate your estimated $VIBE airdrop based on $FUNDED token holdings across multiple wallets on Base mainnet",
   "type": "module",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "vercel-build": "vite build"
   },
   "dependencies": {
     "react": "^18.2.0",
@@ -25,7 +26,12 @@
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3"
   },
-  "keywords": ["blockchain", "base", "token", "balance", "moralis"],
+  "keywords": ["blockchain", "base", "funded", "vibe", "airdrop", "token", "balance", "moralis", "vercel"],
   "author": "",
-  "license": "MIT"
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/vibe-airdrop-calculator.git"
+  },
+  "homepage": "https://your-project.vercel.app"
 }

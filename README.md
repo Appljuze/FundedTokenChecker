@@ -1,11 +1,13 @@
-# $FUNDED Token Balance Checker
+# $VIBE Airdrop Calculator
 
-A modern web application for checking $FUNDED token balances on Base mainnet at specific block heights. Built with React, Vite, and Tailwind CSS, powered by the Moralis API.
+A modern web application for calculating $VIBE airdrops based on $FUNDED token holdings across multiple wallets on Base mainnet. Built with React, Vite, and Tailwind CSS, powered by the Moralis API.
 
 ## Features
 
 - 🪙 Check $FUNDED token balances at block 26,161,082
 - 🔍 Query Base blockchain using Moralis API
+- 👥 Support for multiple wallet addresses
+- 🎯 Calculate combined $VIBE airdrop based on total holdings
 - 🎨 Clean, modern UI with responsive design
 - ⚡ Fast and efficient token balance retrieval
 - 📱 Mobile-friendly interface
@@ -44,21 +46,50 @@ A modern web application for checking $FUNDED token balances on Base mainnet at 
 
 ## Usage
 
-1. **Enter Wallet Address**: The wallet address whose $FUNDED balance you want to check
-2. **Click "Check $FUNDED Balance at Block 26,161,082"**: The app will query Base mainnet and display the results
+1. **Add Wallet Addresses**: Enter one or more wallet addresses to check
+2. **Add More Wallets**: Click "Add Another Wallet" to check multiple addresses
+3. **Click "Calculate Total $VIBE Airdrop"**: The app will query Base mainnet for all wallets
+4. **View Results**: See individual wallet balances and total estimated airdrop
 
 The app automatically uses:
 - **Token**: $FUNDED (0xc1d5892e28ea1c5ecd9fac7771b9d06802f321e0)
 - **Block**: 26,161,082
 - **Network**: Base Mainnet
+- **Rate**: $0.15 per $FUNDED token
 
-## Build for Production
+## Deployment
+
+### Vercel (Recommended)
+
+1. **Install Vercel CLI**
+   ```bash
+   npm i -g vercel
+   ```
+
+2. **Deploy to Vercel**
+   ```bash
+   vercel
+   ```
+
+3. **Or connect your GitHub repository**:
+   - Push your code to GitHub
+   - Go to [vercel.com](https://vercel.com)
+   - Import your repository
+   - Add your environment variables in the Vercel dashboard
+
+### Manual Build
 
 ```bash
 npm run build
 ```
 
 The built files will be in the `dist` directory.
+
+## Environment Variables
+
+| Variable | Description | Required |
+|----------|-------------|----------|
+| `VITE_MORALIS_API_KEY` | Your Moralis API key | Yes |
 
 ## Technologies Used
 
@@ -67,6 +98,7 @@ The built files will be in the `dist` directory.
 - **Blockchain API**: Moralis
 - **Icons**: Lucide React
 - **Build Tool**: Vite
+- **Deployment**: Vercel-ready
 
 ## API Configuration
 
@@ -76,19 +108,13 @@ The app is configured to work with Base mainnet (Chain ID: 0x2105). The Moralis 
 - Address validation
 - Error handling
 
-## Environment Variables
-
-| Variable | Description | Required |
-|----------|-------------|----------|
-| `VITE_MORALIS_API_KEY` | Your Moralis API key | Yes |
-
 ## Troubleshooting
 
 - **API Key Issues**: Ensure your Moralis API key is valid and has sufficient credits
 - **Network Errors**: Check your internet connection and Moralis service status
 - **Invalid Addresses**: Ensure addresses start with `0x` and are valid Ethereum addresses
 - **Moralis SDK**: Ensure Moralis is properly initialized before use
-- **PowerShell Issues**: If npm scripts fail, run `Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser`
+- **Deployment Issues**: Check that all environment variables are set in Vercel
 
 ## License
 
