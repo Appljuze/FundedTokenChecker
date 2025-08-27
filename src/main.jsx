@@ -27,16 +27,23 @@ const initMoralis = async () => {
     console.log('🔗 Moralis object:', window.Moralis)
     console.log('🔗 EvmApi object:', window.MoralisEvmApi)
     
-    // Test the API connection
+    // Test the API connection with the correct endpoint
     try {
       console.log('🧪 Testing Moralis API connection...')
-      const testResponse = await window.MoralisEvmApi.token.getTokenMetadata({
-        addresses: ['0xc1d5892e28ea1c5ecd9fac7771b9d06802f321e0'],
-        chain: '0x2105'
+      const testResponse = await window.MoralisEvmApi.token.getWalletTokenBalances({
+        address: '0x62B1164bF496f464BAB19C42B88B92E2C74CBE6A', // Test wallet address
+        chain: '0x2105', // Base mainnet
+        token_addresses: ['0xc1d5892e28ea1c5ecd9fac7771b9d06802f321e0'] // $FUNDED token
       })
       console.log('✅ Moralis API test successful:', testResponse)
+      console.log('🔍 Test result count:', testResponse.result?.length || 0)
     } catch (testError) {
       console.error('❌ Moralis API test failed:', testError)
+      console.error('🔍 Test error details:', {
+        message: testError.message,
+        status: testError.status,
+        code: testError.code
+      })
     }
     
   } catch (error) {

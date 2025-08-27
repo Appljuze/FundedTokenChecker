@@ -15,7 +15,7 @@ function App() {
             <h1 className="text-4xl font-bold text-gray-900">$VIBE Airdrop Calculator</h1>
           </div>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Calculate your estimated $VIBE airdrop based on combined $FUNDED token holdings across multiple wallets
+            Calculate your estimated $VIBE airdrop
           </p>
         </div>
 

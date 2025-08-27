@@ -27,12 +27,12 @@ export const useMoralis = () => {
         console.log(`🔧 useMoralis: Using Moralis EvmApi...`)
         
         try {
-          // Get token balance at specific block using Moralis
-          console.log(`🔧 useMoralis: Fetching token balance with Moralis...`)
-          const balanceResponse = await window.MoralisEvmApi.token.getTokenBalance({
+          // Get wallet token balances using the correct Moralis endpoint
+          console.log(`🔧 useMoralis: Fetching wallet token balances with Moralis...`)
+          const balanceResponse = await window.MoralisEvmApi.token.getWalletTokenBalances({
             address: walletAddress,
-            token_addresses: [tokenAddress],
             chain: '0x2105', // Base mainnet chain ID
+            token_addresses: [tokenAddress],
             to_block: blockNumber
           })
 
@@ -46,6 +46,12 @@ export const useMoralis = () => {
             const balance = (parseInt(rawBalance) / Math.pow(10, decimals)).toFixed(decimals)
             
             console.log(`🔧 useMoralis: Raw balance: ${rawBalance}, calculated balance: ${balance}`)
+            console.log(`🔧 useMoralis: Token data:`, {
+              symbol,
+              decimals,
+              name: tokenData.name,
+              token_address: tokenData.token_address
+            })
 
             const result = {
               tokenAddress,
@@ -60,12 +66,17 @@ export const useMoralis = () => {
             console.log(`🔧 useMoralis: Successfully returning Moralis result:`, result)
             return result
           } else {
-            console.log(`🔧 useMoralis: Empty result from Moralis, falling back to RPC...`)
+            console.log(`🔧 useMoralis: Empty result from Moralis (wallet may have 0 balance), falling back to RPC...`)
             return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
           }
           
         } catch (moralisError) {
           console.error(`🔧 useMoralis: Moralis API error:`, moralisError)
+          console.error(`🔧 useMoralis: Error details:`, {
+            message: moralisError.message,
+            status: moralisError.status,
+            code: moralisError.code
+          })
           console.log(`🔧 useMoralis: Falling back to RPC due to Moralis error...`)
           return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
         }
