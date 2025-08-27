@@ -110,8 +110,8 @@ const TokenBalanceChecker = () => {
         
         // Add a small delay between requests to avoid rate limiting
         if (i < validWallets.length - 1) {
-          console.log(`  ⏸️  Waiting 1000ms before next wallet...`)
-          await new Promise(resolve => setTimeout(resolve, 1000))
+          console.log(`  ⏸️  Waiting 2000ms before next wallet...`)
+          await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
 
