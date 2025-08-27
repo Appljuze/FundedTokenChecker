@@ -126,8 +126,8 @@ const TokenBalanceChecker = () => {
         
         // Add delay between requests to avoid rate limiting
         if (i < validWallets.length - 1) {
-          console.log(`  ⏸️  Waiting 2000ms before next wallet...`)
-          await new Promise(resolve => setTimeout(resolve, 2000))
+          console.log(`  ⏸️  Waiting 3000ms before next wallet...`)
+          await new Promise(resolve => setTimeout(resolve, 3000))
         }
       }
 
@@ -175,7 +175,7 @@ const TokenBalanceChecker = () => {
     <div className="space-y-6">
       {/* Input Form */}
       <div className="card">
-        <h2 className="text-2xl font-semibold mb-6 text-gray-900">Check Multiple $FUNDED Holdings & $VIBE Airdrop</h2>
+        <h2 className="text-2xl font-semibold mb-6 text-gray-900">Add Wallets Holding $FUNDED tokens</h2>
         
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -279,10 +279,10 @@ const TokenBalanceChecker = () => {
             {/* Estimated Time */}
             <div className="text-center text-sm text-gray-600">
               <p>
-                Estimated time remaining: {Math.max(0, (loadingProgress.total - loadingProgress.current) * 2)} seconds
+                Estimated time remaining: {Math.max(0, (loadingProgress.total - loadingProgress.current) * 3)} seconds
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                (2 second delay between wallets to respect rate limits)
+                (3 second delay between wallets to respect rate limits)
               </p>
             </div>
           </div>
