@@ -32,8 +32,8 @@ export const useMoralis = () => {
           const balanceResponse = await window.MoralisEvmApi.token.getWalletTokenBalances({
             address: walletAddress,
             chain: '0x2105', // Base mainnet chain ID
-            token_addresses: [tokenAddress],
-            to_block: blockNumber
+            tokenAddresses: [tokenAddress],
+            toBlock: blockNumber
           })
 
           console.log(`🔧 useMoralis: Balance response:`, balanceResponse)

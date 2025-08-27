@@ -33,7 +33,7 @@ const initMoralis = async () => {
       const testResponse = await window.MoralisEvmApi.token.getWalletTokenBalances({
         address: '0x62B1164bF496f464BAB19C42B88B92E2C74CBE6A', // Test wallet address
         chain: '0x2105', // Base mainnet
-        token_addresses: ['0xc1d5892e28ea1c5ecd9fac7771b9d06802f321e0'] // $FUNDED token
+        tokenAddresses: ['0xc1d5892e28ea1c5ecd9fac7771b9d06802f321e0'] // $FUNDED token
       })
       console.log('✅ Moralis API test successful:', testResponse)
       console.log('🔍 Test result count:', testResponse.result?.length || 0)
