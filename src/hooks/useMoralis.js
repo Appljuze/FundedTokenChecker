@@ -3,6 +3,18 @@ import { useState, useCallback } from 'react'
 export const useMoralis = () => {
   const getTokenBalanceAtBlock = useCallback(async (tokenAddress, walletAddress, blockNumber) => {
     try {
+      // Debug logging to see what values we're receiving
+      console.log('getTokenBalanceAtBlock called with:')
+      console.log('- tokenAddress:', tokenAddress)
+      console.log('- walletAddress:', walletAddress)
+      console.log('- blockNumber:', blockNumber)
+      console.log('- tokenAddress type:', typeof tokenAddress)
+      
+      // Validate inputs
+      if (!tokenAddress || !walletAddress || !blockNumber) {
+        throw new Error(`Invalid parameters: tokenAddress=${tokenAddress}, walletAddress=${walletAddress}, blockNumber=${blockNumber}`)
+      }
+      
       // Check if Moralis is available
       if (window.Moralis && window.Moralis.EvmApi) {
         console.log('Using Moralis API...')

@@ -36,6 +36,13 @@ const TokenBalanceChecker = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
+    // Debug logging for constants
+    console.log('Constants check:')
+    console.log('- TOKEN_ADDRESS:', TOKEN_ADDRESS)
+    console.log('- BLOCK_NUMBER:', BLOCK_NUMBER)
+    console.log('- TOKEN_ADDRESS type:', typeof TOKEN_ADDRESS)
+    console.log('- BLOCK_NUMBER type:', typeof BLOCK_NUMBER)
+    
     // Filter out empty wallet addresses
     const validWallets = wallets.filter(wallet => wallet.trim())
     if (validWallets.length === 0) return
@@ -57,6 +64,7 @@ const TokenBalanceChecker = () => {
         setCurrentWalletIndex(i + 1)
         
         console.log(`Processing wallet ${i + 1}/${validWallets.length}: ${walletAddress}`)
+        console.log(`Calling getTokenBalanceAtBlock with: TOKEN_ADDRESS=${TOKEN_ADDRESS}, walletAddress=${walletAddress}, BLOCK_NUMBER=${BLOCK_NUMBER}`)
         
         try {
           // Add delay between API calls to avoid rate limiting
