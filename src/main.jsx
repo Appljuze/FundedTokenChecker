@@ -2,18 +2,20 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
+import Moralis from 'moralis'
 
 // Initialize Moralis
 const initMoralis = async () => {
   try {
-    const Moralis = await import('moralis')
-    await Moralis.default.start({
+    await Moralis.start({
       apiKey: import.meta.env.VITE_MORALIS_API_KEY || 'your-api-key-here'
     })
     
     // Make Moralis available globally
-    window.Moralis = Moralis.default
+    window.Moralis = Moralis
     console.log('Moralis initialized successfully and available globally')
+    console.log('Moralis object structure:', Object.keys(Moralis))
+    console.log('Moralis.EvmApi structure:', Object.keys(Moralis.EvmApi))
     return true
   } catch (error) {
     console.error('Failed to initialize Moralis:', error)

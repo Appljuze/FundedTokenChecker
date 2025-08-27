@@ -6,8 +6,10 @@ export const useMoralis = () => {
       // Check if Moralis is available
       if (window.Moralis && window.Moralis.EvmApi) {
         console.log('Using Moralis API...')
+        console.log('Full Moralis object:', window.Moralis)
         console.log('Available Moralis methods:', Object.keys(window.Moralis.EvmApi))
         console.log('Available token methods:', Object.keys(window.Moralis.EvmApi.token))
+        console.log('Token methods details:', window.Moralis.EvmApi.token)
         
         // Get token metadata using Moralis v2
         const tokenMetadata = await window.Moralis.EvmApi.token.getTokenMetadata({
@@ -19,14 +21,39 @@ export const useMoralis = () => {
         const symbol = token.symbol || 'TOKEN'
         const decimals = token.decimals || 18
 
-        // Get token balance at specific block using Moralis v2
-        // In v2, we need to use getTokenBalances for a single token
-        const balanceResponse = await window.Moralis.EvmApi.token.getTokenBalances({
-          address: walletAddress,
-          tokenAddresses: [tokenAddress],
-          chain: '0x2105', // Base mainnet chain ID
-          block: blockNumber.toString()
-        })
+        // Try to find the correct method for getting token balances
+        let balanceResponse
+        const tokenMethods = Object.keys(window.Moralis.EvmApi.token)
+        
+        if (tokenMethods.includes('getTokenBalances')) {
+          balanceResponse = await window.Moralis.EvmApi.token.getTokenBalances({
+            address: walletAddress,
+            tokenAddresses: [tokenAddress],
+            chain: '0x2105',
+            block: blockNumber.toString()
+          })
+        } else if (tokenMethods.includes('getWalletTokenBalances')) {
+          balanceResponse = await window.Moralis.EvmApi.token.getWalletTokenBalances({
+            address: walletAddress,
+            chain: '0x2105',
+            block: blockNumber.toString()
+          })
+          // Filter for our specific token
+          const ourToken = balanceResponse.result.find(t => t.tokenAddress.toLowerCase() === tokenAddress.toLowerCase())
+          if (ourToken) {
+            balanceResponse = { result: [ourToken] }
+          } else {
+            balanceResponse = { result: [{ balance: '0' }] }
+          }
+        } else if (tokenMethods.includes('getTokenPrice')) {
+          // Fallback: try to get balance using a different approach
+          console.log('Trying alternative method...')
+          // For now, let's use a direct RPC call as fallback
+          throw new Error('Moralis token balance methods not available. Please check API configuration.')
+        } else {
+          console.error('Available token methods:', tokenMethods)
+          throw new Error(`No suitable balance method found. Available methods: ${tokenMethods.join(', ')}`)
+        }
 
         // Extract the balance from the response
         const tokenBalance = balanceResponse.result[0]
