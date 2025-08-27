@@ -5,7 +5,6 @@ import { useMoralis } from '../hooks/useMoralis'
 const TokenBalanceChecker = () => {
   const [wallets, setWallets] = useState([''])
   const [isLoading, setIsLoading] = useState(false)
-  const [currentWalletIndex, setCurrentWalletIndex] = useState(0)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
   
@@ -36,19 +35,11 @@ const TokenBalanceChecker = () => {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    // Debug logging for constants
-    console.log('Constants check:')
-    console.log('- TOKEN_ADDRESS:', TOKEN_ADDRESS)
-    console.log('- BLOCK_NUMBER:', BLOCK_NUMBER)
-    console.log('- TOKEN_ADDRESS type:', typeof TOKEN_ADDRESS)
-    console.log('- BLOCK_NUMBER type:', typeof BLOCK_NUMBER)
-    
     // Filter out empty wallet addresses
     const validWallets = wallets.filter(wallet => wallet.trim())
     if (validWallets.length === 0) return
     
     setIsLoading(true)
-    setCurrentWalletIndex(0)
     setError(null)
     setResults(null)
 
@@ -56,30 +47,14 @@ const TokenBalanceChecker = () => {
       const walletResults = []
       let totalBalance = 0
 
-      console.log(`Starting to process ${validWallets.length} wallets...`)
-
       // Check balance for each wallet
-      for (let i = 0; i < validWallets.length; i++) {
-        const walletAddress = validWallets[i]
-        setCurrentWalletIndex(i + 1)
-        
-        console.log(`Processing wallet ${i + 1}/${validWallets.length}: ${walletAddress}`)
-        console.log(`Calling getTokenBalanceAtBlock with: TOKEN_ADDRESS=${TOKEN_ADDRESS}, walletAddress=${walletAddress}, BLOCK_NUMBER=${BLOCK_NUMBER}`)
-        
+      for (const walletAddress of validWallets) {
         try {
-          // Add delay between API calls to avoid rate limiting
-          if (i > 0) {
-            console.log(`Waiting 0.5 seconds before processing next wallet...`)
-            await new Promise(resolve => setTimeout(resolve, 500))
-          }
-
           const balance = await getTokenBalanceAtBlock(
             TOKEN_ADDRESS,
             walletAddress.trim(),
             BLOCK_NUMBER
           )
-          
-          console.log(`Wallet ${i + 1} result:`, balance)
           
           // Ensure balance is properly parsed and handle zero values
           const parsedBalance = parseFloat(balance.balance) || 0
@@ -90,13 +65,8 @@ const TokenBalanceChecker = () => {
           })
           
           totalBalance += parsedBalance
-          
-          console.log(`Wallet ${i + 1} processed successfully. Balance: ${parsedBalance}, Total so far: ${totalBalance}`)
-          
         } catch (err) {
-          console.error(`Error checking wallet ${i + 1} (${walletAddress}):`, err)
-          
-          // Add error result but continue processing other wallets
+          console.error(`Error checking wallet ${walletAddress}:`, err)
           walletResults.push({
             tokenAddress: TOKEN_ADDRESS,
             walletAddress: walletAddress.trim(),
@@ -107,12 +77,9 @@ const TokenBalanceChecker = () => {
             rawBalance: '0',
             error: err.message
           })
-          
-          console.log(`Wallet ${i + 1} failed, but continuing with next wallet...`)
+          // Don't add to total if there's an error
         }
       }
-
-      console.log(`Finished processing all wallets. Total balance: ${totalBalance}`)
 
       setResults({
         wallets: walletResults,
@@ -120,11 +87,9 @@ const TokenBalanceChecker = () => {
         totalWallets: validWallets.length
       })
     } catch (err) {
-      console.error('Critical error in handleSubmit:', err)
-      setError(`Failed to process wallets: ${err.message}`)
+      setError(err.message || 'Failed to fetch token balances')
     } finally {
       setIsLoading(false)
-      setCurrentWalletIndex(0)
     }
   }
 
@@ -132,7 +97,7 @@ const TokenBalanceChecker = () => {
 
   // Calculate estimated $VIBE airdrop value
   const calculateVibeAirdrop = (fundedBalance) => {
-    const balance = parseFloat(fundedBalance) || 0
+    const balance = parseFloat(fundedBalance)
     const usdValue = balance * FUNDED_USD_VALUE
     return {
       fundedTokens: balance,
@@ -185,6 +150,8 @@ const TokenBalanceChecker = () => {
               <Plus className="h-4 w-4 mr-2" />
               Add Another Wallet
             </button>
+            
+            
           </div>
 
           <button
@@ -195,7 +162,7 @@ const TokenBalanceChecker = () => {
             {isLoading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Processing Wallet {currentWalletIndex} of {wallets.filter(w => w.trim()).length}...
+                Checking {wallets.filter(w => w.trim()).length} Wallet{results?.totalWallets > 1 ? 's' : ''}...
               </>
             ) : (
               <>

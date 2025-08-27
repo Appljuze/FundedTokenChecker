@@ -2,43 +2,28 @@ import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
 import './index.css'
-import Moralis from 'moralis'
 
-// Initialize Moralis
+// Initialize Moralis in the background
 const initMoralis = async () => {
   try {
-    await Moralis.start({
+    const Moralis = await import('moralis')
+    await Moralis.default.start({
       apiKey: import.meta.env.VITE_MORALIS_API_KEY || 'your-api-key-here'
     })
-    
-    // Make Moralis available globally
-    window.Moralis = Moralis
-    console.log('Moralis initialized successfully and available globally')
-    console.log('Moralis object structure:', Object.keys(Moralis))
-    console.log('Moralis.EvmApi structure:', Object.keys(Moralis.EvmApi))
-    return true
+    console.log('Moralis initialized successfully')
   } catch (error) {
     console.error('Failed to initialize Moralis:', error)
-    return false
+    console.log('App will continue with fallback RPC methods')
   }
 }
 
-// Initialize Moralis before rendering the app
-const startApp = async () => {
-  const moralisReady = await initMoralis()
-  
-  if (!moralisReady) {
-    console.error('Moralis failed to initialize. The app may not work properly.')
-  }
-  
-  // Render the app
-  ReactDOM.createRoot(document.getElementById('root')).render(
-    <React.StrictMode>
-      <App />
-    </React.StrictMode>,
-  )
-}
+// Start Moralis initialization but don't wait for it
+initMoralis()
 
-// Start the app
-startApp()
+// Render the app immediately
+ReactDOM.createRoot(document.getElementById('root')).render(
+  <React.StrictMode>
+    <App />
+  </React.StrictMode>,
+)
 

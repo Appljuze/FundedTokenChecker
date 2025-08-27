@@ -1,29 +1,29 @@
 import { useState, useCallback } from 'react'
 
 export const useMoralis = () => {
-  const getTokenBalanceAtBlock = useCallback(async (tokenAddress, walletAddress, blockNumber) => {
+  const [isLoading, setIsLoading] = useState(false)
+
+  // Helper function to convert hex to string (browser compatible)
+  const hexToString = (hex) => {
+    if (!hex || hex === '0x') return ''
     try {
-      // Debug logging to see what values we're receiving
-      console.log('getTokenBalanceAtBlock called with:')
-      console.log('- tokenAddress:', tokenAddress)
-      console.log('- walletAddress:', walletAddress)
-      console.log('- blockNumber:', blockNumber)
-      console.log('- tokenAddress type:', typeof tokenAddress)
-      
-      // Validate inputs
-      if (!tokenAddress || !walletAddress || !blockNumber) {
-        throw new Error(`Invalid parameters: tokenAddress=${tokenAddress}, walletAddress=${walletAddress}, blockNumber=${blockNumber}`)
-      }
-      
+      return decodeURIComponent('%' + hex.slice(2).match(/.{1,2}/g).map(byte => byte).join('%'))
+    } catch {
+      // Fallback: remove null bytes and convert
+      return hex.slice(2).replace(/00/g, '').replace(/(.{2})/g, '%$1')
+        .split('%').slice(1).map(byte => String.fromCharCode(parseInt(byte, 16))).join('')
+    }
+  }
+
+  const getTokenBalanceAtBlock = useCallback(async (tokenAddress, walletAddress, blockNumber) => {
+    setIsLoading(true)
+    
+    try {
       // Check if Moralis is available
       if (window.Moralis && window.Moralis.EvmApi) {
         console.log('Using Moralis API...')
-        console.log('Full Moralis object:', window.Moralis)
-        console.log('Available Moralis methods:', Object.keys(window.Moralis.EvmApi))
-        console.log('Available token methods:', Object.keys(window.Moralis.EvmApi.token))
-        console.log('Token methods details:', window.Moralis.EvmApi.token)
         
-        // Get token metadata using Moralis v2
+        // Get token metadata using Moralis
         const tokenMetadata = await window.Moralis.EvmApi.token.getTokenMetadata({
           addresses: [tokenAddress],
           chain: '0x2105' // Base mainnet chain ID
@@ -33,47 +33,15 @@ export const useMoralis = () => {
         const symbol = token.symbol || 'TOKEN'
         const decimals = token.decimals || 18
 
-        // Try to find the correct method for getting token balances
-        let balanceResponse
-        const tokenMethods = Object.keys(window.Moralis.EvmApi.token)
-        
-        if (tokenMethods.includes('getTokenBalances')) {
-          balanceResponse = await window.Moralis.EvmApi.token.getTokenBalances({
-            address: walletAddress,
-            tokenAddresses: [tokenAddress],
-            chain: '0x2105',
-            toBlock: blockNumber.toString()
-          })
-        } else if (tokenMethods.includes('getWalletTokenBalances')) {
-          balanceResponse = await window.Moralis.EvmApi.token.getWalletTokenBalances({
-            address: walletAddress,
-            chain: '0x2105',
-            toBlock: blockNumber.toString()
-          })
-          // Filter for our specific token
-          const ourToken = balanceResponse.result.find(t => t.tokenAddress.toLowerCase() === tokenAddress.toLowerCase())
-          if (ourToken) {
-            balanceResponse = { result: [ourToken] }
-          } else {
-            balanceResponse = { result: [{ balance: '0' }] }
-          }
-        } else if (tokenMethods.includes('getTokenPrice')) {
-          // Fallback: try to get balance using a different approach
-          console.log('Trying alternative method...')
-          // For now, let's use a direct RPC call as fallback
-          throw new Error('Moralis token balance methods not available. Please check API configuration.')
-        } else {
-          console.error('Available token methods:', tokenMethods)
-          throw new Error(`No suitable balance method found. Available methods: ${tokenMethods.join(', ')}`)
-        }
+        // Get token balance at specific block using Moralis
+        const balanceResponse = await window.Moralis.EvmApi.token.getTokenBalance({
+          address: walletAddress,
+          tokenAddress: tokenAddress,
+          chain: '0x2105', // Base mainnet chain ID
+          block: blockNumber.toString()
+        })
 
-        // Extract the balance from the response
-        const tokenBalance = balanceResponse.result[0]
-        if (!tokenBalance) {
-          throw new Error('No balance data returned for this token')
-        }
-
-        const rawBalance = tokenBalance.balance || '0'
+        const rawBalance = balanceResponse.result.balance
         const balance = (parseInt(rawBalance) / Math.pow(10, decimals)).toFixed(decimals)
 
         return {
@@ -86,21 +54,96 @@ export const useMoralis = () => {
           rawBalance
         }
       } else {
-        // Check what's available for debugging
-        console.error('Moralis availability check failed:')
-        console.error('- window.Moralis exists:', !!window.Moralis)
-        console.error('- window.Moralis.EvmApi exists:', !!(window.Moralis && window.Moralis.EvmApi))
-        console.error('- window.Moralis object:', window.Moralis)
-        
-        throw new Error('Moralis SDK not available. Please ensure Moralis is properly initialized and refresh the page.')
+        console.log('Moralis not available, using fallback RPC...')
+        return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
       }
     } catch (error) {
-      console.error('Error fetching token balance with Moralis:', error)
-      throw new Error(`Failed to fetch token balance: ${error.message}`)
+      console.error('Error fetching token balance:', error)
+      
+      // Fallback to direct RPC if Moralis fails
+      try {
+        console.log('Falling back to direct RPC call...')
+        return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
+      } catch (fallbackError) {
+        console.error('Fallback also failed:', fallbackError)
+        throw new Error(`Failed to fetch token balance: ${error.message}`)
+      }
+    } finally {
+      setIsLoading(false)
     }
   }, [])
 
+  // Fallback method using direct RPC calls
+  const getTokenBalanceFallback = async (tokenAddress, walletAddress, blockNumber) => {
+    const rpcUrl = 'https://mainnet.base.org'
+    
+    // Get token decimals
+    const decimalsResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: tokenAddress,
+          data: '0x313ce567' // decimals() function selector
+        }, '0x' + parseInt(blockNumber).toString(16)],
+        id: 1
+      })
+    })
+    const decimalsData = await decimalsResponse.json()
+    const decimals = parseInt(decimalsData.result, 16)
+
+    // Get token symbol
+    const symbolResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: tokenAddress,
+          data: '0x95d89b41' // symbol() function selector
+        }, '0x' + parseInt(blockNumber).toString(16)],
+        id: 1
+      })
+    })
+    const symbolData = await symbolResponse.json()
+    const symbol = symbolData.result ? 
+      hexToString(symbolData.result) : 
+      'TOKEN'
+
+    // Get balance
+    const balanceResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: tokenAddress,
+          data: '0x70a08231' + '000000000000000000000000' + walletAddress.slice(2)
+        }, '0x' + parseInt(blockNumber).toString(16)],
+        id: 1
+      })
+    })
+    const balanceData = await balanceResponse.json()
+    const rawBalance = balanceData.result
+    const balance = (parseInt(rawBalance, 16) / Math.pow(10, decimals)).toFixed(decimals)
+
+    return {
+      tokenAddress,
+      walletAddress,
+      blockNumber: parseInt(blockNumber),
+      balance,
+      symbol,
+      decimals,
+      rawBalance
+    }
+  }
+
   return {
-    getTokenBalanceAtBlock
+    getTokenBalanceAtBlock,
+    isLoading
   }
 }
