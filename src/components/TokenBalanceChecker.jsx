@@ -59,6 +59,12 @@ const TokenBalanceChecker = () => {
         console.log(`Processing wallet ${i + 1}/${validWallets.length}: ${walletAddress}`)
         
         try {
+          // Add delay between API calls to avoid rate limiting
+          if (i > 0) {
+            console.log(`Waiting 0.5 seconds before processing next wallet...`)
+            await new Promise(resolve => setTimeout(resolve, 500))
+          }
+
           const balance = await getTokenBalanceAtBlock(
             TOKEN_ADDRESS,
             walletAddress.trim(),
