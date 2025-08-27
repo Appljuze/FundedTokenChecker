@@ -6,8 +6,10 @@ export const useMoralis = () => {
       // Check if Moralis is available
       if (window.Moralis && window.Moralis.EvmApi) {
         console.log('Using Moralis API...')
+        console.log('Available Moralis methods:', Object.keys(window.Moralis.EvmApi))
+        console.log('Available token methods:', Object.keys(window.Moralis.EvmApi.token))
         
-        // Get token metadata using Moralis
+        // Get token metadata using Moralis v2
         const tokenMetadata = await window.Moralis.EvmApi.token.getTokenMetadata({
           addresses: [tokenAddress],
           chain: '0x2105' // Base mainnet chain ID
@@ -17,15 +19,22 @@ export const useMoralis = () => {
         const symbol = token.symbol || 'TOKEN'
         const decimals = token.decimals || 18
 
-        // Get token balance at specific block using Moralis
-        const balanceResponse = await window.Moralis.EvmApi.token.getTokenBalance({
+        // Get token balance at specific block using Moralis v2
+        // In v2, we need to use getTokenBalances for a single token
+        const balanceResponse = await window.Moralis.EvmApi.token.getTokenBalances({
           address: walletAddress,
-          tokenAddress: tokenAddress,
+          tokenAddresses: [tokenAddress],
           chain: '0x2105', // Base mainnet chain ID
           block: blockNumber.toString()
         })
 
-        const rawBalance = balanceResponse.result.balance
+        // Extract the balance from the response
+        const tokenBalance = balanceResponse.result[0]
+        if (!tokenBalance) {
+          throw new Error('No balance data returned for this token')
+        }
+
+        const rawBalance = tokenBalance.balance || '0'
         const balance = (parseInt(rawBalance) / Math.pow(10, decimals)).toFixed(decimals)
 
         return {
