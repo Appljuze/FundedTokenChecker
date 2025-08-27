@@ -1,8 +1,6 @@
 import { useState, useCallback } from 'react'
 
 export const useMoralis = () => {
-  const [isLoading, setIsLoading] = useState(false)
-
   // Helper function to convert hex to string (browser compatible)
   const hexToString = (hex) => {
     if (!hex || hex === '0x') return ''
@@ -16,8 +14,6 @@ export const useMoralis = () => {
   }
 
   const getTokenBalanceAtBlock = useCallback(async (tokenAddress, walletAddress, blockNumber) => {
-    setIsLoading(true)
-    
     try {
       // Check if Moralis is available
       if (window.Moralis && window.Moralis.EvmApi) {
@@ -68,8 +64,6 @@ export const useMoralis = () => {
         console.error('Fallback also failed:', fallbackError)
         throw new Error(`Failed to fetch token balance: ${error.message}`)
       }
-    } finally {
-      setIsLoading(false)
     }
   }, [])
 
@@ -143,7 +137,6 @@ export const useMoralis = () => {
   }
 
   return {
-    getTokenBalanceAtBlock,
-    isLoading
+    getTokenBalanceAtBlock
   }
 }
