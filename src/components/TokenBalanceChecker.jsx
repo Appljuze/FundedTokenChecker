@@ -124,11 +124,8 @@ const TokenBalanceChecker = () => {
           // Don't add to total if there's an error
         }
         
-        // Add delay between requests to avoid rate limiting
-        if (i < validWallets.length - 1) {
-          console.log(`  ⏸️  Waiting 3000ms before next wallet...`)
-          await new Promise(resolve => setTimeout(resolve, 3000))
-        }
+        // No delay needed - Moralis handles rate limiting automatically
+        console.log(`  ✅ Wallet ${i + 1} processed successfully`)
       }
 
       console.log(`\n🎯 Final results summary:`)
@@ -279,10 +276,10 @@ const TokenBalanceChecker = () => {
             {/* Estimated Time */}
             <div className="text-center text-sm text-gray-600">
               <p>
-                Estimated time remaining: {Math.max(0, (loadingProgress.total - loadingProgress.current) * 3)} seconds
+                Processing wallets with Moralis API
               </p>
               <p className="text-xs text-gray-500 mt-1">
-                (3 second delay between wallets to respect rate limits)
+                (No delays needed - Moralis handles rate limiting automatically)
               </p>
             </div>
           </div>
