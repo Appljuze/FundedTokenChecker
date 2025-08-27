@@ -37,21 +37,34 @@ export const useMoralis = () => {
           })
 
           console.log(`🔧 useMoralis: Balance response:`, balanceResponse)
+          console.log(`🔧 useMoralis: Response result:`, balanceResponse.result)
+          console.log(`🔧 useMoralis: Full response object:`, JSON.stringify(balanceResponse, null, 2))
           
-          if (balanceResponse.result && balanceResponse.result.length > 0) {
-            const tokenData = balanceResponse.result[0]
-            const rawBalance = tokenData.balance
+          // Handle both result array and jsonResponse array formats
+          const resultArray = balanceResponse.result || balanceResponse.jsonResponse || []
+          console.log(`🔧 useMoralis: Result array:`, resultArray)
+          
+          if (resultArray && resultArray.length > 0) {
+            const tokenData = resultArray[0]
+            console.log(`🔧 useMoralis: Token data object:`, tokenData)
+            
+            const rawBalance = tokenData.balance || tokenData.amount || '0'
             const decimals = parseInt(tokenData.decimals) || 18
-            const symbol = tokenData.symbol || 'FUNDED'
-            const balance = (parseInt(rawBalance) / Math.pow(10, decimals)).toFixed(decimals)
+            const symbol = tokenData.symbol || tokenData.token_symbol || 'FUNDED'
+            const name = tokenData.name || tokenData.token_name
+            const tokenAddress = tokenData.token_address
+            
+            console.log(`🔧 useMoralis: Extracted values:`, {
+              rawBalance,
+              decimals,
+              symbol,
+              name,
+              tokenAddress
+            })
+            
+            const balance = rawBalance !== '0' ? (parseInt(rawBalance) / Math.pow(10, decimals)).toFixed(decimals) : '0'
             
             console.log(`🔧 useMoralis: Raw balance: ${rawBalance}, calculated balance: ${balance}`)
-            console.log(`🔧 useMoralis: Token data:`, {
-              symbol,
-              decimals,
-              name: tokenData.name,
-              token_address: tokenData.token_address
-            })
 
             const result = {
               tokenAddress,
@@ -66,7 +79,12 @@ export const useMoralis = () => {
             console.log(`🔧 useMoralis: Successfully returning Moralis result:`, result)
             return result
           } else {
-            console.log(`🔧 useMoralis: Empty result from Moralis (wallet may have 0 balance), falling back to RPC...`)
+            console.log(`🔧 useMoralis: Empty result from Moralis - no tokens found for this address at this block`)
+            console.log(`🔧 useMoralis: This could mean:`)
+            console.log(`🔧 useMoralis: 1. Wallet has 0 balance of this token at block ${blockNumber}`)
+            console.log(`🔧 useMoralis: 2. Token wasn't held at this specific historical block`)
+            console.log(`🔧 useMoralis: 3. Moralis doesn't have data for this token/block combination`)
+            console.log(`🔧 useMoralis: Falling back to RPC for direct blockchain query...`)
             return await getTokenBalanceFallback(tokenAddress, walletAddress, blockNumber)
           }
           
