@@ -96,126 +96,71 @@ export const useMoralis = () => {
 
   // Fallback method using direct RPC calls
   const getTokenBalanceFallback = async (tokenAddress, walletAddress, blockNumber) => {
-    console.log(`🔧 Fallback: Starting RPC fallback for wallet ${walletAddress}`)
+    const rpcUrl = 'https://mainnet.base.org'
     
-    // Multiple RPC endpoints for redundancy and speed
-    const rpcEndpoints = [
-      'https://mainnet.base.org',
-      'https://base.blockpi.network/v1/rpc/public',
-      'https://1rpc.io/base',
-      'https://base.meowrpc.com'
-    ]
-    
-    // Try each RPC endpoint until one succeeds
-    for (let i = 0; i < rpcEndpoints.length; i++) {
-      const rpcUrl = rpcEndpoints[i]
-      console.log(`🔧 Fallback: Trying RPC endpoint ${i + 1}/${rpcEndpoints.length}: ${rpcUrl}`)
-      
-      try {
-        // Get token decimals
-        console.log(`🔧 Fallback: Fetching token decimals...`)
-        const decimalsResponse = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_call',
-            params: [{
-              to: tokenAddress,
-              data: '0x313ce567' // decimals() function selector
-            }, '0x' + parseInt(blockNumber).toString(16)],
-            id: 1
-          })
-        })
-        
-        if (!decimalsResponse.ok) {
-          console.log(`🔧 Fallback: RPC ${i + 1} failed with status ${decimalsResponse.status}`)
-          continue
-        }
-        
-        const decimalsData = await decimalsResponse.json()
-        const decimals = parseInt(decimalsData.result, 16)
-        console.log(`🔧 Fallback: Token decimals: ${decimals}`)
+    // Get token decimals
+    const decimalsResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: tokenAddress,
+          data: '0x313ce567' // decimals() function selector
+        }, '0x' + parseInt(blockNumber).toString(16)],
+        id: 1
+      })
+    })
+    const decimalsData = await decimalsResponse.json()
+    const decimals = parseInt(decimalsData.result, 16)
 
-        // Get token symbol
-        console.log(`🔧 Fallback: Fetching token symbol...`)
-        const symbolResponse = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_call',
-            params: [{
-              to: tokenAddress,
-              data: '0x95d89b41' // symbol() function selector
-            }, '0x' + parseInt(blockNumber).toString(16)],
-            id: 1
-          })
-        })
-        
-        if (!symbolResponse.ok) {
-          console.log(`🔧 Fallback: RPC ${i + 1} failed with status ${symbolResponse.status}`)
-          continue
-        }
-        
-        const symbolData = await symbolResponse.json()
-        const symbol = symbolData.result ? 
-          hexToString(symbolData.result) : 
-          'TOKEN'
-        console.log(`🔧 Fallback: Token symbol: ${symbol}`)
+    // Get token symbol
+    const symbolResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: tokenAddress,
+          data: '0x95d89b41' // symbol() function selector
+        }, '0x' + parseInt(blockNumber).toString(16)],
+        id: 1
+      })
+    })
+    const symbolData = await symbolResponse.json()
+    const symbol = symbolData.result ? 
+      hexToString(symbolData.result) : 
+      'TOKEN'
 
-        // Get balance
-        console.log(`🔧 Fallback: Fetching token balance...`)
-        const balanceResponse = await fetch(rpcUrl, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            jsonrpc: '2.0',
-            method: 'eth_call',
-            params: [{
-              to: tokenAddress,
-              data: '0x70a08231' + '000000000000000000000000' + walletAddress.slice(2)
-            }, '0x' + parseInt(blockNumber).toString(16)],
-            id: 1
-          })
-        })
-        
-        if (!balanceResponse.ok) {
-          console.log(`🔧 Fallback: RPC ${i + 1} failed with status ${balanceResponse.status}`)
-          continue
-        }
-        
-        const balanceData = await balanceResponse.json()
-        const rawBalance = balanceData.result
-        const balance = (parseInt(rawBalance, 16) / Math.pow(10, decimals)).toFixed(decimals)
-        
-        console.log(`🔧 Fallback: Raw balance: ${rawBalance}, calculated balance: ${balance}`)
-        console.log(`🔧 Fallback: Successfully used RPC endpoint ${i + 1}`)
+    // Get balance
+    const balanceResponse = await fetch(rpcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'eth_call',
+        params: [{
+          to: tokenAddress,
+          data: '0x70a08231' + '000000000000000000000000' + walletAddress.slice(2)
+        }, '0x' + parseInt(blockNumber).toString(16)],
+        id: 1
+      })
+    })
+    const balanceData = await balanceResponse.json()
+    const rawBalance = balanceData.result
+    const balance = (parseInt(rawBalance, 16) / Math.pow(10, decimals)).toFixed(decimals)
 
-        const result = {
-          tokenAddress,
-          walletAddress,
-          blockNumber: parseInt(blockNumber),
-          balance,
-          symbol,
-          decimals,
-          rawBalance
-        }
-        
-        console.log(`🔧 Fallback: Returning result:`, result)
-        return result
-        
-      } catch (error) {
-        console.log(`🔧 Fallback: RPC ${i + 1} failed with error:`, error.message)
-        if (i === rpcEndpoints.length - 1) {
-          console.error(`🔧 Fallback: All RPC endpoints failed`)
-          throw error
-        }
-        // Continue to next RPC endpoint
-      }
+    return {
+      tokenAddress,
+      walletAddress,
+      blockNumber: parseInt(blockNumber),
+      balance,
+      symbol,
+      decimals,
+      rawBalance
     }
-    
-    throw new Error('All RPC endpoints failed')
   }
 
   return {

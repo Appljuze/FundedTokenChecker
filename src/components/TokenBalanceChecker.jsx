@@ -7,6 +7,7 @@ const TokenBalanceChecker = () => {
   const [isLoading, setIsLoading] = useState(false)
   const [results, setResults] = useState(null)
   const [error, setError] = useState(null)
+  const [loadingProgress, setLoadingProgress] = useState({ current: 0, total: 0, currentWallet: '' })
   
   // Hardcoded values
   const TOKEN_ADDRESS = '0xc1d5892e28ea1c5ecd9fac7771b9d06802f321e0' // $FUNDED token on Base
@@ -45,95 +46,87 @@ const TokenBalanceChecker = () => {
     setIsLoading(true)
     setError(null)
     setResults(null)
+    
+    // Initialize loading progress
+    setLoadingProgress({
+      current: 0,
+      total: validWallets.length,
+      currentWallet: ''
+    })
 
     try {
       const walletResults = []
       let totalBalance = 0
 
-      // Process wallets in batches for concurrent processing
-      const batchSize = 3 // Process 3 wallets at a time
-      const batches = []
-      
-      for (let i = 0; i < validWallets.length; i += batchSize) {
-        batches.push(validWallets.slice(i, i + batchSize))
-      }
-      
-      console.log(`🔄 Processing ${batches.length} batches of ${batchSize} wallets each`)
-
-      for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-        const batch = batches[batchIndex]
-        console.log(`\n📦 Processing batch ${batchIndex + 1}/${batches.length} with ${batch.length} wallets`)
+      // Check balance for each wallet sequentially
+      for (let i = 0; i < validWallets.length; i++) {
+        const walletAddress = validWallets[i]
         
-        // Process wallets in current batch concurrently
-        const batchPromises = batch.map(async (walletAddress, batchWalletIndex) => {
-          const globalWalletIndex = batchIndex * batchSize + batchWalletIndex
-          console.log(`🔍 Processing wallet ${globalWalletIndex + 1}/${validWallets.length}: ${walletAddress}`)
-          
-          try {
-            console.log(`  ⏳ Fetching balance for wallet: ${walletAddress}`)
-            
-            const balance = await getTokenBalanceAtBlock(
-              TOKEN_ADDRESS,
-              walletAddress.trim(),
-              BLOCK_NUMBER
-            )
-            
-            console.log(`  ✅ Raw balance response:`, balance)
-            
-            // Ensure balance is properly parsed and handle zero values
-            const parsedBalance = parseFloat(balance.balance) || 0
-            console.log(`  🔢 Parsed balance: ${parsedBalance} (original: ${balance.balance})`)
-            
-            const result = {
-              ...balance,
-              balance: parsedBalance.toString()
-            }
-            
-            console.log(`  📝 Final result object:`, result)
-            console.log(`  💰 Wallet ${globalWalletIndex + 1} balance: ${parsedBalance} $FUNDED`)
-            
-            return { result, parsedBalance, success: true }
-            
-          } catch (err) {
-            console.error(`  ❌ Error checking wallet ${walletAddress}:`, err)
-            console.error(`  🔍 Error details:`, {
-              message: err.message,
-              stack: err.stack,
-              wallet: walletAddress,
-              index: globalWalletIndex
-            })
-            
-            const errorResult = {
-              tokenAddress: TOKEN_ADDRESS,
-              walletAddress: walletAddress.trim(),
-              blockNumber: BLOCK_NUMBER,
-              balance: '0',
-              symbol: 'FUNDED',
-              decimals: 18,
-              rawBalance: '0',
-              error: err.message
-            }
-            
-            console.log(`  🚫 Adding error result:`, errorResult)
-            return { result: errorResult, parsedBalance: 0, success: false }
-          }
+        // Update loading progress
+        setLoadingProgress({
+          current: i + 1,
+          total: validWallets.length,
+          currentWallet: walletAddress
         })
         
-        // Wait for all wallets in current batch to complete
-        const batchResults = await Promise.all(batchPromises)
+        console.log(`\n🔍 Processing wallet ${i + 1}/${validWallets.length}:`, walletAddress)
         
-        // Process batch results
-        for (const { result, parsedBalance, success } of batchResults) {
-          walletResults.push(result)
-          if (success) {
-            totalBalance += parsedBalance
-            console.log(`  📈 Running total: ${totalBalance} $FUNDED`)
+        try {
+          console.log(`  ⏳ Fetching balance for wallet: ${walletAddress}`)
+          
+          const balance = await getTokenBalanceAtBlock(
+            TOKEN_ADDRESS,
+            walletAddress.trim(),
+            BLOCK_NUMBER
+          )
+          
+          console.log(`  ✅ Raw balance response:`, balance)
+          
+          // Ensure balance is properly parsed and handle zero values
+          const parsedBalance = parseFloat(balance.balance) || 0
+          console.log(`  🔢 Parsed balance: ${parsedBalance} (original: ${balance.balance})`)
+          
+          const result = {
+            ...balance,
+            balance: parsedBalance.toString()
           }
+          
+          console.log(`  📝 Final result object:`, result)
+          
+          walletResults.push(result)
+          totalBalance += parsedBalance
+          
+          console.log(`  💰 Wallet ${i + 1} balance: ${parsedBalance} $FUNDED`)
+          console.log(`  📈 Running total: ${totalBalance} $FUNDED`)
+          
+        } catch (err) {
+          console.error(`  ❌ Error checking wallet ${walletAddress}:`, err)
+          console.error(`  🔍 Error details:`, {
+            message: err.message,
+            stack: err.stack,
+            wallet: walletAddress,
+            index: i
+          })
+          
+          const errorResult = {
+            tokenAddress: TOKEN_ADDRESS,
+            walletAddress: walletAddress.trim(),
+            blockNumber: BLOCK_NUMBER,
+            balance: '0',
+            symbol: 'FUNDED',
+            decimals: 18,
+            rawBalance: '0',
+            error: err.message
+          }
+          
+          console.log(`  🚫 Adding error result:`, errorResult)
+          walletResults.push(errorResult)
+          // Don't add to total if there's an error
         }
         
-        // Add delay between batches (not between individual wallets in a batch)
-        if (batchIndex < batches.length - 1) {
-          console.log(`  ⏸️  Waiting 2000ms before next batch...`)
+        // Add delay between requests to avoid rate limiting
+        if (i < validWallets.length - 1) {
+          console.log(`  ⏸️  Waiting 2000ms before next wallet...`)
           await new Promise(resolve => setTimeout(resolve, 2000))
         }
       }
@@ -160,6 +153,7 @@ const TokenBalanceChecker = () => {
       setError(err.message || 'Failed to fetch token balances')
     } finally {
       setIsLoading(false)
+      setLoadingProgress({ current: 0, total: 0, currentWallet: '' })
       console.log(`🏁 Loading state set to false`)
     }
   }
@@ -244,6 +238,56 @@ const TokenBalanceChecker = () => {
           </button>
         </form>
       </div>
+
+      {/* Loading Progress Bar */}
+      {isLoading && (
+        <div className="card border-blue-200 bg-blue-50">
+          <div className="flex items-center mb-4">
+            <Loader2 className="h-6 w-6 text-blue-600 mr-3 animate-spin" />
+            <h3 className="text-lg font-medium text-blue-800">Processing Wallets</h3>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-3">
+              <div 
+                className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${(loadingProgress.current / loadingProgress.total) * 100}%` }}
+              ></div>
+            </div>
+            
+            {/* Progress Text */}
+            <div className="text-center">
+              <p className="text-sm text-gray-600">
+                Processing wallet {loadingProgress.current} of {loadingProgress.total}
+              </p>
+              <p className="text-lg font-semibold text-blue-800 mt-1">
+                {Math.round((loadingProgress.current / loadingProgress.total) * 100)}% Complete
+              </p>
+            </div>
+            
+            {/* Current Wallet */}
+            {loadingProgress.currentWallet && (
+              <div className="bg-white p-3 rounded-lg border border-blue-200">
+                <p className="text-xs text-gray-600 mb-1">Currently Processing:</p>
+                <p className="font-mono text-sm text-blue-900 break-all">
+                  {loadingProgress.currentWallet}
+                </p>
+              </div>
+            )}
+            
+            {/* Estimated Time */}
+            <div className="text-center text-sm text-gray-600">
+              <p>
+                Estimated time remaining: {Math.max(0, (loadingProgress.total - loadingProgress.current) * 2)} seconds
+              </p>
+              <p className="text-xs text-gray-500 mt-1">
+                (2 second delay between wallets to respect rate limits)
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Error Display */}
       {error && (
